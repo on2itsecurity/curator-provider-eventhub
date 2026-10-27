@@ -1,0 +1,23 @@
+# Local and secrets
+local.settings.json
+.env
+*.pem
+*.key
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build output
+dist/*
+!dist/.gitkeep
+
+# Editors and OS
+.DS_Store
+.vscode/
+.idea/
+*.code-workspace

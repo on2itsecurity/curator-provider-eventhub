@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "EventHubConnection": "<event hub connection string, local runs only>",
+    "EVENT_HUB_NAME": "<event hub name>",
+    "EVENT_HUB_CONSUMER_GROUP": "$Default",
+    "CURATOR_HOST": "<curator ip or fqdn>",
+    "CURATOR_PORT": "5141",
+    "PROTOCOL": "syslog"
+  }
+}
