@@ -2,16 +2,16 @@ name: Publish package
 
 # Builds released-package.zip and publishes it as GitHub release assets:
 #
-# - On every push to master (direct commits and merges): creates a release
-#   named build-<run number>, marked as the latest release. The offer template
-#   downloads releases/latest/download/released-package.zip, so this moves
-#   "latest" to the newest master. Pushes to other branches do nothing.
+# - On every push to master (direct commits and merges): updates one release
+#   with the tag "latest": the tag is moved to the new commit and the package
+#   assets are replaced. The offer template downloads
+#   releases/download/latest/released-package.zip by default. Pushes to other
+#   branches do nothing.
 # - When a release is published (for example v1.2.0): attaches the package to
 #   that release, so releases/download/<tag>/released-package.zip can be pinned.
-#   Mark a release as a prerelease to keep it out of "latest".
 #
-# Releases and tags created with the workflow token do not trigger workflows,
-# so the two triggers cannot loop.
+# Releases and tags created or moved with the workflow token do not trigger
+# workflows, so the two triggers cannot loop.
 
 on:
   push:
@@ -49,7 +49,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = "release" ]; then
             echo "VERSION=${{ github.event.release.tag_name }}" >> "$GITHUB_ENV"
           else
-            echo "VERSION=build-${{ github.run_number }}" >> "$GITHUB_ENV"
+            echo "VERSION=latest" >> "$GITHUB_ENV"
           fi
       - name: Build package
         run: scripts/build-package.sh "$VERSION"
@@ -60,13 +60,21 @@ jobs:
         run: |
           gh release upload "$VERSION" \
             dist/released-package.zip dist/released-package.zip.sha256 --clobber
-      - name: Publish build release
+      - name: Update the latest release
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$VERSION" \
-            dist/released-package.zip dist/released-package.zip.sha256 \
-            --target "$GITHUB_SHA" --latest \
-            --title "Build ${{ github.run_number }}" \
-            --notes "Automated build of $GITHUB_SHA."
+          git tag -f latest "$GITHUB_SHA"
+          git push --force origin refs/tags/latest
+          notes="Rolling build of master, commit $GITHUB_SHA. Pin a versioned release for a fixed package."
+          if gh release view latest >/dev/null 2>&1; then
+            gh release edit latest --notes "$notes" --latest=false
+            gh release upload latest \
+              dist/released-package.zip dist/released-package.zip.sha256 --clobber
+          else
+            gh release create latest \
+              dist/released-package.zip dist/released-package.zip.sha256 \
+              --target "$GITHUB_SHA" --latest=false \
+              --title "latest" --notes "$notes"
+          fi
