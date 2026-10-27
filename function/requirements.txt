@@ -1,2 +1,7 @@
-azure-functions>=1.18.0
-msgpack>=1.0.0
+# Fully pinned: the release package is built from exactly these versions.
+# Direct dependencies
+azure-functions==1.25.0
+msgpack==1.2.4
+# Transitive dependencies of azure-functions
+markupsafe==3.0.4
+werkzeug==3.1.9

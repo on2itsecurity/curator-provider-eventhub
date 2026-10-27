@@ -1,0 +1,72 @@
+name: Publish package
+
+# Builds released-package.zip and publishes it as GitHub release assets:
+#
+# - On every push to master (direct commits and merges): creates a release
+#   named build-<run number>, marked as the latest release. The offer template
+#   downloads releases/latest/download/released-package.zip, so this moves
+#   "latest" to the newest master. Pushes to other branches do nothing.
+# - When a release is published (for example v1.2.0): attaches the package to
+#   that release, so releases/download/<tag>/released-package.zip can be pinned.
+#   Mark a release as a prerelease to keep it out of "latest".
+#
+# Releases and tags created with the workflow token do not trigger workflows,
+# so the two triggers cannot loop.
+
+on:
+  push:
+    branches: [master]
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Require the commit to be on master
+        run: |
+          git fetch origin master
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/master
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Run unit tests
+        run: |
+          python -m pip install pytest -r function/requirements.txt
+          python -m pytest tests/unit
+      - name: Work out the version
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "release" ]; then
+            echo "VERSION=${{ github.event.release.tag_name }}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION=build-${{ github.run_number }}" >> "$GITHUB_ENV"
+          fi
+      - name: Build package
+        run: scripts/build-package.sh "$VERSION"
+      - name: Attach to the published release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$VERSION" \
+            dist/released-package.zip dist/released-package.zip.sha256 --clobber
+      - name: Publish build release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$VERSION" \
+            dist/released-package.zip dist/released-package.zip.sha256 \
+            --target "$GITHUB_SHA" --latest \
+            --title "Build ${{ github.run_number }}" \
+            --notes "Automated build of $GITHUB_SHA."
