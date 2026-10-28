@@ -2,7 +2,7 @@
 
 Azure Function that forwards Azure Event Hub logs to an AUXO Curator appliance over syslog (RFC 5424 or 3164) or the Fluentd forward protocol.
 
-Status: work in progress, not released. Source stays private until release.
+Status: in development, no stable release yet.
 
 ## Layout
 
@@ -15,9 +15,17 @@ Status: work in progress, not released. Source stays private until release.
 | `dist/` | Build output (generated, not committed). |
 | `.github/workflows/` | CI and release workflows. |
 
-## How the pieces connect
+## Package and releases
 
-1. `function/` is built in CI on every release to `master` into `released-package.zip` (code plus vendored dependencies, no templates) and published as a GitHub release asset.
-2. The offer repo's template deploys that package with `onedeploy` from the release URL: `releases/latest/download/released-package.zip` by default, or `releases/download/<tag>/released-package.zip` when a version is pinned.
+CI builds the function into `released-package.zip` (code plus Linux dependencies, ready to run on Flex Consumption) with `scripts/build-package.sh`.
+
+- Every push to `master` updates the release tagged `latest`, a rolling build of `master`: `releases/download/latest/released-package.zip`.
+- Publishing a release (for example `v1.2.0`) attaches the package to that release, so a version can be pinned: `releases/download/<tag>/released-package.zip`. A `.sha256` file is published next to every package.
 
 See `CHANGELOG.md` for release history.
+
+## Contributing, security and license
+
+- Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md). This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+- Security issues: do not use the issue tracker, see [SECURITY.md](SECURITY.md).
+- License: [MIT](LICENSE.md).
